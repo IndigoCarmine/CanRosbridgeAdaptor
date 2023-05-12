@@ -18,8 +18,23 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
         <TextBlock Text="It is for a Development of using ROS(WSL) and CAN. Don't use without Test. " Grid.ColumnSpan="4" HorizontalAlignment="Center" Margin="20" FontSize="20" FontWeight="ExtraBlack" />
-        
+        <Button Grid.Column="1" Grid.Row="1" Margin="30" Click="ROS_ButtonClick" >
+            <TextBlock Text="ROS Connect"></TextBlock>
+        </Button>
+        <Button Grid.Column="1" Grid.Row="2" Margin="30" Click="USBCAN_ButtonClick" >
+            <TextBlock Text="USBCAN Connect"></TextBlock>
+        </Button>
+        <Button Grid.Column="0" Grid.Row="2" Margin="30" Click="Port_ButtonClick" >
+            <TextBlock Text="Port Read"></TextBlock>
+        </Button>
+        <ComboBox x:Name="PortsCombo" Grid.Row="3" Grid.Column="1" Margin="20" />
+        <Grid Grid.Row="4" Grid.ColumnSpan ="4"  Background="LightGray">
+            <TextBlock x:Name="LogText" Text="" FontSize="18" Margin="4" VerticalAlignment="Center"/>
+        </Grid>
     </Grid>
 </Window>
+    
