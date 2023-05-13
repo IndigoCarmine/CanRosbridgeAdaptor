@@ -28,15 +28,17 @@ namespace CanRosbridgeAdaptor
     {
         //For ROS_bridge
         WebSocketDataTransporter stream;
-        RosSubscriber<sensor_msgs.msg.Joy> joySubscriber;
+        RosPublisher<sensor_msgs.msg.Joy> joyPublisher;
         RosSubscriber<can_plugins2.msg.Frame> canSubscriber;
         RosPublisher<can_plugins2.msg.Frame> canPublisher;
 
         //For USBCAN
-        SerialPort usbcan;
+        UsbCan usbcan;
 
         //For JoyStick
-        
+        GamePad gamePad;
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -51,48 +53,74 @@ namespace CanRosbridgeAdaptor
                 if (stream.IsOpened)
                 {
                     //
-                    joySubscriber = RosSubscriber<sensor_msgs.msg.Joy>.Create(stream, "/Joy");
-                    canSubscriber = RosSubscriber<can_plugins2.msg.Frame>.Create(stream, "/can_tx");
-                    canPublisher = RosPublisher<can_plugins2.msg.Frame>.Create(stream, "/can_tx");
+                    joyPublisher = RosPublisher<sensor_msgs.msg.Joy>.Create(stream, "joy");
+                    canSubscriber = RosSubscriber<can_plugins2.msg.Frame>.Create(stream, "can_tx");
+                    canPublisher = RosPublisher<can_plugins2.msg.Frame>.Create(stream, "can_rx");
 
-                    canSubscriber.MessageReceived.Subscribe(frame => { Console.WriteLine(frame); });
-
+                    canSubscriber.MessageReceived.Subscribe(frame => {
+                        log(frame.ToString());
+                    });
+                    statusTextUpdate("Connect"); 
                 }
                 else
                 {
-                    log("cannot open");
+                    statusTextUpdate("cannot open");
                     
                     stream.Dispose();
                 }
             }catch(Exception ex)
             {
-                log("cannot connect");
+                statusTextUpdate("cannot connect");
             }
+            
+        }
+        void statusTextUpdate(string msg)
+        {
+            Dispatcher.Invoke(() => { StatusText.Text = msg; });
         }
         void log(string msg)
         {
-            Dispatcher.Invoke(() => { LogText.Text = msg; });
+            //Dispatcher.Invoke(() => { LogPanel.Text += msg + "\n"; });
+            Dispatcher.Invoke(() => { LogPanel.Text = msg + "\n"; });
+
         }
 
-        private void USBCAN_ButtonClick(object sender, RoutedEventArgs e)
+        private void Port_ButtonClick(object sender, RoutedEventArgs e)
         {
             PortsCombo.ItemsSource = SerialPort.GetPortNames();
+            
         }
         private void ROS_ButtonClick(object sender, RoutedEventArgs e)
         {
             rosConnect();
         }
 
-        private void Port_ButtonClick(object sender, RoutedEventArgs e)
+        private void USBCAN_ButtonClick(object sender, RoutedEventArgs e)
         {
             string portName = (string)PortsCombo.SelectedItem;
             usbcan = new(portName);
             try
             {
                 usbcan.Open();
+                statusTextUpdate("USB Connect");
             }catch(Exception ex) {
-                log("cannot connect (usbcan)");
+                statusTextUpdate("cannot connect (usbcan)");
             }
+        }
+        Task gamepadTask;
+        private void Joy_ButtonClick(object sender, RoutedEventArgs e)
+        {
+            gamePad = new GamePad(10);
+            gamepadTask = new(async () =>
+            {
+                await foreach (var data in gamePad.AsyncReadGamePad())
+                {
+                    await joyPublisher.WriteAsync(data);
+                    log(data.ToString());
+                }
+            });
+
+            gamepadTask.Start();
         }
     }
 }

@@ -8,14 +8,37 @@ namespace CanRosbridgeAdaptor
     public class UsbCan {
         private SerialPort port;
 
+        //If the class get handshake, it is true.
+        public bool IsActive{ get; private set; } = false;
+
+        //If the port is open, it is true
+        public bool IsOpen
+        {
+            get
+            {
+                return port.IsOpen;
+            }
+        }
+
         public UsbCan(string portName)
         {
-            port = new SerialPort(portName);
-           
+            port = new SerialPort(portName);   
+            
         }
         public void Open()
         {
             port.Open();
+        }
+        public async void Handshake()
+        {
+            byte[] HelloUSBCAN = "HelloUSBCAN/0"u8.ToArray();
+
+            while (IsOpen&&IsActive)
+            {
+                port.Write(HelloUSBCAN, 0, HelloUSBCAN.Length);
+                await Task.Delay(100);
+            }   
+
         }
         async IAsyncEnumerable<can_plugins2.msg.Frame> ReadAsyc()
         {
@@ -39,6 +62,7 @@ namespace CanRosbridgeAdaptor
                 if(buffer[buffer_index + 1] == 0)
                 {
                     //finish or error
+
                 }
             }
             yield return new(new(), 1, true, true, true, 1,new byte[1]);
