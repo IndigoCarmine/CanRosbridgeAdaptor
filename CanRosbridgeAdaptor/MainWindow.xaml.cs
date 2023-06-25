@@ -18,9 +18,41 @@ using Husty.RosBridge;
 using System.Runtime.CompilerServices;
 using System.IO.Ports;
 using HidSharp;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.ComponentModel;
 
 namespace CanRosbridgeAdaptor
 {
+    
+    public class ViewModelBase : INotifyPropertyChanged
+    {
+        // INotifyPropertyChanged を実装するためのイベントハンドラ
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        // プロパティ名によって自動的にセットされる
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+    public class MainWindowViewModel: ViewModelBase
+    {
+        private bool _rosConnected = false;
+        public bool rosConnected
+        {
+            set
+            {
+                if (_rosConnected != value)
+                {
+                    _rosConnected = value;
+                    OnPropertyChanged();
+                }
+            }
+            get { return _rosConnected; }
+        }
+
+             
+
+    }
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -42,6 +74,7 @@ namespace CanRosbridgeAdaptor
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new MainWindowViewModel();
         }
 
 
@@ -61,6 +94,7 @@ namespace CanRosbridgeAdaptor
                         log(frame.ToString());
                     });
                     statusTextUpdate("Connect"); 
+                    ((MainWindowViewModel)DataContext).rosConnected = true;
                 }
                 else
                 {
@@ -84,17 +118,25 @@ namespace CanRosbridgeAdaptor
             Dispatcher.Invoke(() => { LogPanel.Text = msg + "\n"; });
 
         }
+        void log<T>(ICollection<T> data)
+        {
+            foreach(var item in data)
+            {
+                log(item!.ToString()?? "");
+                log("\n");
+            }
+        }
 
         private void Port_ButtonClick(object sender, RoutedEventArgs e)
         {
             PortsCombo.ItemsSource = SerialPort.GetPortNames();
-            
         }
         private void ROS_ButtonClick(object sender, RoutedEventArgs e)
         {
             rosConnect();
         }
 
+        Task canTask;
         private void USBCAN_ButtonClick(object sender, RoutedEventArgs e)
         {
             string portName = (string)PortsCombo.SelectedItem;
@@ -106,6 +148,27 @@ namespace CanRosbridgeAdaptor
             }catch(Exception ex) {
                 statusTextUpdate("cannot connect (usbcan)");
             }
+
+            canTask = new(async () =>
+            {
+                await foreach (var data in usbcan.ReadAsyc())
+                {
+                    //await canPublisher.WriteAsync(data);
+                    log(data.ToString());
+                }
+            });
+            canTask.Start();
+
+            Task task = new(() =>
+            {
+                while (usbcan.IsActive)
+                {
+                    Task.Delay(100);
+                }
+                log("Handshake");
+            });
+            task.Start();
+            
         }
         Task gamepadTask;
         private void Joy_ButtonClick(object sender, RoutedEventArgs e)
