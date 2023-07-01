@@ -115,7 +115,7 @@ namespace CanRosbridgeAdaptor
         void log(string msg)
         {
             //Dispatcher.Invoke(() => { LogPanel.Text += msg + "\n"; });
-            Dispatcher.Invoke(() => { LogPanel.Text = msg + "\n"; });
+            Dispatcher.Invoke(() => { LogPanel.Text += msg + "\n"; });
 
         }
         void log<T>(ICollection<T> data)

@@ -29,7 +29,7 @@ namespace CanRosbridgeAdaptor
 
 
 
-            while (!token.IsCancellationRequested)
+            while (true)
             {
 
                 await Task.Delay(Delay);
@@ -39,14 +39,14 @@ namespace CanRosbridgeAdaptor
 
                 for(int i = 0; i < 11; i++)
                 {
-                    buttons[i] = (int)(0x1 & (data.dwButtons << i));
+                    buttons[i] = (int)(0x1 & (data.dwButtons >> i));
                 }
 
                 axes[0] = AxeDatatoFloat(data.dwXpos);
                 axes[1] = AxeDatatoFloat(data.dwYpos);
 
                 axes[2] = AxeDatatoFloat(data.dwRpos);
-                axes[3] = AxeDatatoFloat(data.dwUpos);
+                axes[3] = AxeDatatoFloat(data.dwZpos);
 
                 switch(data.dwPOV)
                 {
